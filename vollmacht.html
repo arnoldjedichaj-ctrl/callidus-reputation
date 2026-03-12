@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vollmacht & Auftragserteilung – Callidus Reputation</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f0f4f8; color: #222; }
+
+  .header {
+    background: #1F3864;
+    color: white;
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .header-logo {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: #C9A84C;
+  }
+  .header-sub { font-size: 13px; color: #8FAADC; margin-top: 2px; }
+
+  .progress-bar {
+    background: #2E5BBA;
+    padding: 12px 32px;
+    display: flex;
+    gap: 0;
+  }
+  .step {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    color: #8FAADC;
+    padding: 6px 0;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+  }
+  .step.active { color: #C9A84C; border-bottom-color: #C9A84C; font-weight: bold; }
+  .step.done { color: #a0cfa0; border-bottom-color: #4CAF50; }
+
+  .container { max-width: 760px; margin: 32px auto; padding: 0 16px 60px; }
+
+  .card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .card-header {
+    background: #1F3864;
+    color: white;
+    padding: 16px 24px;
+    font-size: 15px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-header .badge {
+    background: #C9A84C;
+    color: #1F3864;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 900;
+  }
+  .card-body { padding: 24px; }
+
+  .info-box {
+    background: #EEF2FA;
+    border-left: 4px solid #2E5BBA;
+    padding: 14px 18px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .info-box strong { color: #1F3864; }
+
+  .score-comparison {
+    display: flex;
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .score-box {
+    flex: 1;
+    text-align: center;
+    padding: 16px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .score-box.before { background: #FFCCCC; }
+  .score-box.after  { background: #D5EFCC; }
+  .score-box .label { font-size: 11px; color: #666; margin-bottom: 4px; }
+  .score-box .value { font-size: 28px; font-weight: 900; }
+  .score-box.before .value { color: #CC0000; }
+  .score-box.after  .value { color: #2E7D32; }
+  .score-arrow { display: flex; align-items: center; font-size: 24px; color: #2E7D32; font-weight: 900; }
+
+  .review-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 14px;
+    background: #FAFAFA;
+  }
+  .review-card .reviewer { font-weight: bold; color: #1F3864; font-size: 14px; }
+  .review-card .stars { color: #CC0000; font-size: 15px; margin: 4px 0; }
+  .review-card .text { font-size: 13px; color: #444; font-style: italic; margin: 8px 0; line-height: 1.5; }
+  .review-card .grund {
+    background: #D5EFCC;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #1a5c1a;
+    font-weight: bold;
+  }
+
+  .contract-text {
+    font-size: 13px;
+    line-height: 1.8;
+    color: #333;
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 6px;
+    background: #FEFEFE;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .contract-text h4 { color: #1F3864; margin: 12px 0 6px; font-size: 13px; }
+  .contract-text p { margin-bottom: 10px; }
+
+  .form-group { margin-bottom: 18px; }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    color: #1F3864;
+    margin-bottom: 6px;
+  }
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: #2E5BBA;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .sig-canvas-wrapper {
+    border: 2px dashed #2E5BBA;
+    border-radius: 6px;
+    background: #f8fbff;
+    text-align: center;
+    padding: 12px;
+    cursor: crosshair;
+    position: relative;
+  }
+  #sigCanvas { border-bottom: 1px solid #ccc; cursor: crosshair; touch-action: none; }
+  .sig-hint { font-size: 11px; color: #888; margin-top: 6px; }
+  .clear-sig {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-top: 6px;
+    color: #666;
+  }
+  .clear-sig:hover { background: #f0f0f0; }
+
+  .checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #FFF3CD;
+    border-radius: 6px;
+    border: 1px solid #C9A84C;
+    margin-bottom: 12px;
+  }
+  .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; cursor: pointer; }
+  .checkbox-group label { font-size: 13px; color: #333; cursor: pointer; line-height: 1.5; }
+
+  .submit-btn {
+    width: 100%;
+    background: #1F3864;
+    color: white;
+    border: none;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .submit-btn:hover { background: #2E5BBA; }
+  .submit-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 60px 24px;
+  }
+  .success-screen .icon { font-size: 64px; margin-bottom: 16px; }
+  .success-screen h2 { color: #2E7D32; font-size: 24px; margin-bottom: 12px; }
+  .success-screen p { color: #555; line-height: 1.6; max-width: 480px; margin: 0 auto 20px; }
+
+  .security-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #888;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+    .score-comparison { flex-direction: column; }
+    .score-arrow { justify-content: center; transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-logo">CALLIDUS</div>
+    <div style="font-size:11px;color:#C9A84C;letter-spacing:2px">REPUTATION</div>
+  </div>
+  <div style="border-left:1px solid #4a6a9e;padding-left:16px">
+    <div style="font-size:15px;font-weight:bold">Vollmacht & Auftragserteilung</div>
+    <div class="header-sub">Digitale Unterzeichnung · Rechtsgültig · DSGVO-konform</div>
+  </div>
+</div>
+
+<div class="progress-bar">
+  <div class="step active" id="step1">① Analyseergebnis</div>
+  <div class="step" id="step2">② Vertragstext</div>
+  <div class="step" id="step3">③ Unterschrift</div>
+  <div class="step" id="step4">✓ Bestätigung</div>
+</div>
+
+<div class="container">
+
+  <!-- === SCREEN 1: Analyseergebnis === -->
+  <div id="screen1">
+
+    <div class="card">
+      <div class="card-header">
+        📊 Ihre persönliche Bewertungsanalyse
+        <span class="badge" id="firma-badge">Ihr Unternehmen</span>
+      </div>
+      <div class="card-body">
+        <div class="info-box">
+          Wir haben Ihr Google-Profil analysiert und <strong id="anzahl-text">löschbare Bewertungen</strong> identifiziert, die nach den Google-Richtlinien (<strong>reportcontent.google.com</strong>) sehr wahrscheinlich entfernt werden können.
+        </div>
+
+        <div class="score-comparison">
+          <div class="score-box before">
+            <div class="label">Aktueller Score</div>
+            <div class="value" id="score-ist">–</div>
+            <div style="font-size:11px;color:#999;margin-top:4px">★ Google Maps</div>
+          </div>
+          <div class="score-arrow">→</div>
+          <div class="score-box after">
+            <div class="label">Score nach Löschung</div>
+            <div class="value" id="score-neu">–</div>
+            <div style="font-size:11px;color:#2E7D32;margin-top:4px;font-weight:bold" id="score-diff">Verbesserung</div>
+          </div>
+        </div>
+
+        <div id="reviews-container"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">💰 Konditionen</div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">
+          <div style="padding:16px;background:#EEF2FA;border-radius:6px">
+            <div style="font-size:22px;font-weight:900;color:#1F3864">50 €</div>
+            <div style="font-size:11px;color:#666;margin-top:4px">pro gelöschter Bewertung</div>
+          </div>
+          <div style="padding:16px;background:#D5EFCC;border-radius:6px">
+            <div style="font-size:22px;font-weight:900;color:#2E7D32">0 €</div>
+            <div style="font-size:11px;color:#666;margin-top:4px">Erstanalyse (kostenlos)</div>
+          </div>
+          <div style="padding:16px;background:#D5EFCC;border-radius:6px">
+            <div style="font-size:22px;font-weight:900;color:#2E7D32">0 €</div>
+            <div style="font-size:11px;color:#666;margin-top:4px">bei Misserfolg</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:13px;color:#555;line-height:1.6;text-align:center">
+          Sie zahlen <strong>ausschliesslich für tatsächlich gelöschte Bewertungen</strong> – zahlbar nach Löschungsnachweis per Screenshot. Keine Vorauszahlung, kein Risiko.
+        </div>
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="goToStep(2)">Vollmacht & Auftragserteilung lesen →</button>
+  </div>
+
+  <!-- === SCREEN 2: Vertragstext === -->
+  <div id="screen2" style="display:none">
+    <div class="card">
+      <div class="card-header">📄 Vollmacht & Dienstleistungsvertrag</div>
+      <div class="card-body">
+        <div class="info-box" style="margin-bottom:16px">
+          Bitte lesen Sie den folgenden Vertrag sorgfältig. Mit Ihrer Unterschrift erteilen Sie Callidus Reputation die Vollmacht, Bewertungsmeldungen bei Google in Ihrem Namen einzureichen.
+        </div>
+        <div class="contract-text" id="contract-text">
+          <h4>§ 1 – Auftraggeber und Auftragnehmer</h4>
+          <p>Auftragnehmer ist <strong>Callidus Reputation, Arnold Jedich</strong>, Neusäß bei Augsburg (nachfolgend „Callidus").<br>
+          Auftraggeber ist das unterzeichnende Unternehmen (nachfolgend „Auftraggeber").</p>
+
+          <h4>§ 2 – Vertragsgegenstand</h4>
+          <p>Callidus prüft Google-Bewertungen des Auftraggebers auf Verstösse gegen die öffentlich zugänglichen Nutzungsbedingungen von Google (policies.google.com) und reicht entsprechende Meldungen über das offizielle Google-Meldeformular (reportcontent.google.com) ein. Callidus erbringt keine Rechtsdienstleistung im Sinne des RDG.</p>
+
+          <h4>§ 3 – Vollmacht</h4>
+          <p>Der Auftraggeber erteilt Callidus hiermit Vollmacht, in seinem Namen Bewertungsmeldungen über das Google-Formular einzureichen und mit Google im Zusammenhang mit diesen Meldungen zu korrespondieren. Die Vollmacht beschränkt sich ausdrücklich auf diese Tätigkeit.</p>
+
+          <h4>§ 4 – Vergütung (Erfolgshonorar)</h4>
+          <p><strong>50,00 € netto (Kleinunternehmer gem. § 19 UStG, keine MwSt.) pro tatsächlich gelöschter Bewertung.</strong> Zahlbar innerhalb von 14 Tagen nach Löschungsnachweis (Screenshot). Bei 10 oder mehr gelöschten Bewertungen gilt ein Sonderpreis von 45,00 € je Bewertung. Im Falle des Misserfolgs (keine Löschung) entstehen dem Auftraggeber keinerlei Kosten.</p>
+
+          <h4>§ 5 – Laufzeit und Kündigung</h4>
+          <p>Dieser Vertrag gilt für den beauftragten Einzelfall. Beide Parteien können den Vertrag jederzeit ohne Frist schriftlich kündigen, solange noch keine Meldungen eingereicht wurden. Nach Einreichung einer Meldung ist diese nicht mehr zurücknehmbar.</p>
+
+          <h4>§ 6 – Datenschutz</h4>
+          <p>Callidus verarbeitet personenbezogene Daten des Auftraggebers ausschliesslich zur Vertragserfüllung gemäss DSGVO. Daten werden nicht an Dritte weitergegeben. Weitere Informationen: callidus-reputation/datenschutz.</p>
+
+          <h4>§ 7 – Schlussbestimmungen</h4>
+          <p>Es gilt deutsches Recht. Gerichtsstand ist Augsburg. Mündliche Nebenabreden bestehen nicht. Änderungen bedürfen der Schriftform.</p>
+
+          <p style="margin-top:16px;padding-top:12px;border-top:1px solid #eee;font-size:12px;color:#888">
+            Stand: März 2026 · Callidus Reputation · Arnold Jedich · Neusäß bei Augsburg
+          </p>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px">
+      <button class="submit-btn" style="background:#888;width:auto;padding:14px 24px" onclick="goToStep(1)">← Zurück</button>
+      <button class="submit-btn" onclick="goToStep(3)">Verstanden – Zur Unterschrift →</button>
+    </div>
+  </div>
+
+  <!-- === SCREEN 3: Unterschrift === -->
+  <div id="screen3" style="display:none">
+    <div class="card">
+      <div class="card-header">✍️ Auftragserteilung & Unterschrift</div>
+      <div class="card-body">
+
+        <form id="signForm">
+          <!-- Hidden fields -->
+          <input type="hidden" name="_subject" value="✅ Neue Vollmacht unterzeichnet – Callidus Reputation">
+          <input type="hidden" name="_next" value="">
+          <input type="hidden" name="firma_url" id="firma_url_field">
+          <input type="hidden" name="score_ist" id="score_ist_field">
+          <input type="hidden" name="score_neu" id="score_neu_field">
+          <input type="hidden" name="bewertungen" id="bewertungen_field">
+          <input type="hidden" name="signatur_data" id="signatur_data">
+          <input type="hidden" name="datum" id="datum_field">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Unternehmensname *</label>
+              <input type="text" name="unternehmensname" id="input_firma" required placeholder="z.B. neudert GmbH">
+            </div>
+            <div class="form-group">
+              <label>Rechtsform</label>
+              <select name="rechtsform">
+                <option>GmbH</option>
+                <option>GmbH & Co. KG</option>
+                <option>Einzelunternehmen</option>
+                <option>UG (haftungsbeschränkt)</option>
+                <option>AG</option>
+                <option>Sonstige</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Vor- und Nachname (Unterzeichner) *</label>
+              <input type="text" name="unterzeichner" required placeholder="Max Mustermann">
+            </div>
+            <div class="form-group">
+              <label>Funktion im Unternehmen</label>
+              <input type="text" name="funktion" placeholder="z.B. Geschäftsführer">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>E-Mail-Adresse *</label>
+              <input type="email" name="email" required placeholder="info@ihr-unternehmen.de">
+            </div>
+            <div class="form-group">
+              <label>Telefonnummer (optional)</label>
+              <input type="tel" name="telefon" placeholder="+49 ...">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Datum</label>
+            <input type="text" id="datum_display" readonly style="background:#f5f5f5;color:#666">
+          </div>
+
+          <div class="form-group">
+            <label>Ihre Unterschrift *</label>
+            <div class="sig-canvas-wrapper">
+              <canvas id="sigCanvas" width="680" height="120"></canvas>
+              <div class="sig-hint">Unterschrift mit Maus oder Finger zeichnen</div>
+              <button type="button" class="clear-sig" onclick="clearSig()">✕ Löschen</button>
+            </div>
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="chk1" name="agb_akzeptiert" value="ja" required>
+            <label for="chk1">Ich habe den Dienstleistungsvertrag (§§ 1–7) gelesen und bin einverstanden. Ich erteile Callidus Reputation hiermit die Vollmacht gemäss § 3 und beauftrage die Erbringung der Leistung gemäss § 2.</label>
+          </div>
+
+          <div class="checkbox-group" style="background:#EEF2FA;border-color:#2E5BBA">
+            <input type="checkbox" id="chk2" name="dsgvo_akzeptiert" value="ja" required>
+            <label for="chk2">Ich stimme der Verarbeitung meiner Daten zur Vertragserfüllung gemäss DSGVO zu (§ 6). Eine Weitergabe an Dritte erfolgt nicht.</label>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:8px">
+            <button type="button" class="submit-btn" style="background:#888;width:auto;padding:14px 24px" onclick="goToStep(2)">← Zurück</button>
+            <button type="submit" class="submit-btn" id="submitBtn">✅ Jetzt verbindlich beauftragen</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- === SCREEN 4: Erfolg === -->
+  <div id="screen4" class="card" style="display:none">
+    <div class="success-screen" style="display:block">
+      <div class="icon">✅</div>
+      <h2>Vielen Dank – Auftrag bestätigt!</h2>
+      <p>Ihre Vollmacht und Auftragserteilung wurden erfolgreich übermittelt. Sie erhalten in Kürze eine Bestätigung per E-Mail.</p>
+      <p>Callidus Reputation beginnt umgehend mit der Prüfung und Einreichung der Meldungen bei Google. Der Zeitraum bis zur Entscheidung durch Google beträgt in der Regel <strong>2–8 Wochen</strong>.</p>
+      <p style="color:#2E7D32;font-weight:bold">Zahlung erst nach Löschungsnachweis (Screenshot) – kein Risiko für Sie.</p>
+      <div style="margin-top:24px;padding:16px;background:#EEF2FA;border-radius:8px;font-size:13px;color:#444">
+        Bei Fragen: <strong>Arnold Jedich</strong> · +49 179 700 7772 · kontakt.callidus@gmail.com
+      </div>
+    </div>
+  </div>
+
+  <div class="security-badge">
+    🔒 SSL-verschlüsselt &nbsp;·&nbsp; DSGVO-konform &nbsp;·&nbsp; Kein Spam &nbsp;·&nbsp; Callidus Reputation © 2026
+  </div>
+
+</div>
+
+<script>
+// ── URL Parameter auslesen ───────────────────────────────────────────────────
+const params = new URLSearchParams(window.location.search);
+const firma      = params.get('firma')       || '';
+const scoreIst   = parseFloat(params.get('si') || params.get('score_ist') || 0);
+const scoreNeu   = parseFloat(params.get('sn') || params.get('score_neu') || 0);
+const anzahl     = parseInt(params.get('b')  || params.get('bewertungen') || 0);
+const bewTexte   = params.get('r') ? decodeURIComponent(params.get('r')).split('|') : [];
+
+// ── Felder befüllen ──────────────────────────────────────────────────────────
+if (firma) {
+  document.getElementById('firma-badge').textContent = firma;
+  document.getElementById('input_firma').value = firma;
+  document.getElementById('firma_url_field').value = firma;
+}
+if (scoreIst) {
+  document.getElementById('score-ist').textContent = scoreIst.toFixed(1) + ' ★';
+  document.getElementById('score_ist_field').value = scoreIst;
+}
+if (scoreNeu) {
+  document.getElementById('score-neu').textContent = scoreNeu.toFixed(2) + ' ★';
+  document.getElementById('score_neu_field').value = scoreNeu;
+  if (scoreIst) {
+    const diff = (scoreNeu - scoreIst).toFixed(2);
+    document.getElementById('score-diff').textContent = '+' + diff + ' Sternpunkte';
+  }
+}
+if (anzahl) {
+  document.getElementById('anzahl-text').textContent = anzahl + ' löschbare Bewertungen';
+  document.getElementById('bewertungen_field').value = anzahl;
+}
+
+// ── Datum setzen ─────────────────────────────────────────────────────────────
+const heute = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'numeric'});
+const input = document.getElementById('datum_display');
+if (input) input.value = heute;
+const df = document.getElementById('datum_field');
+if (df) df.value = heute;
+
+// ── Bewertungskarten rendern ──────────────────────────────────────────────────
+const container = document.getElementById('reviews-container');
+if (bewTexte.length > 0) {
+  bewTexte.forEach((t, i) => {
+    const parts = t.split('::');
+    const name  = parts[0] || 'Rezensent';
+    const text  = parts[1] || '';
+    const grund = parts[2] || 'Kein Kundenverhältnis';
+    container.innerHTML += `
+      <div class="review-card">
+        <div class="reviewer">★☆☆☆☆ &nbsp; ${name}</div>
+        <div class="text">"${text}"</div>
+        <div class="grund">✅ Löschgrund: ${grund}</div>
+      </div>`;
+  });
+} else if (anzahl > 0) {
+  container.innerHTML = `<div class="info-box" style="background:#fff3cd;border-color:#C9A84C">
+    <strong>${anzahl} Bewertungen</strong> wurden als löschbar identifiziert. Details wurden Ihnen per E-Mail übermittelt.</div>`;
+}
+
+// ── Navigation zwischen Screens ──────────────────────────────────────────────
+function goToStep(n) {
+  [1,2,3,4].forEach(i => {
+    const s = document.getElementById('screen'+i);
+    if (s) s.style.display = i === n ? 'block' : 'none';
+    const step = document.getElementById('step'+i);
+    if (step) {
+      step.className = 'step';
+      if (i < n) step.className += ' done';
+      if (i === n) step.className += ' active';
+    }
+  });
+  window.scrollTo(0, 0);
+}
+
+// ── Signature Canvas ──────────────────────────────────────────────────────────
+const canvas = document.getElementById('sigCanvas');
+const ctx    = canvas.getContext('2d');
+let drawing  = false;
+let hasSig   = false;
+
+// Responsive canvas
+function resizeCanvas() {
+  const w = Math.min(680, canvas.parentElement.clientWidth - 24);
+  canvas.style.width  = w + 'px';
+  canvas.style.height = '120px';
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+ctx.strokeStyle = '#1F3864';
+ctx.lineWidth   = 2;
+ctx.lineCap     = 'round';
+ctx.lineJoin    = 'round';
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  if (e.touches) return {
+    x: (e.touches[0].clientX - rect.left) * scaleX,
+    y: (e.touches[0].clientY - rect.top)  * scaleY
+  };
+  return {
+    x: (e.clientX - rect.left) * scaleX,
+    y: (e.clientY - rect.top)  * scaleY
+  };
+}
+
+canvas.addEventListener('mousedown',  e => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+canvas.addEventListener('mousemove',  e => { if (!drawing) return; hasSig = true; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+canvas.addEventListener('mouseup',    () => { drawing = false; });
+canvas.addEventListener('mouseleave', () => { drawing = false; });
+canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+canvas.addEventListener('touchmove',  e => { e.preventDefault(); if (!drawing) return; hasSig = true; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+canvas.addEventListener('touchend',   () => { drawing = false; });
+
+function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); hasSig = false; }
+
+// ── Formular Submit ───────────────────────────────────────────────────────────
+document.getElementById('signForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  if (!hasSig) {
+    alert('Bitte zeichnen Sie Ihre Unterschrift.');
+    return;
+  }
+
+  const sigData = document.getElementById('signatur_data');
+  if (sigData) sigData.value = canvas.toDataURL('image/png');
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled   = true;
+  btn.textContent = '⏳ Wird übermittelt...';
+
+  const formData = new FormData(this);
+  // Signatur-Image weglassen (zu groß für Formspree) — stattdessen Flag
+  formData.set('signatur_data', '[Unterschrift digital erbracht – ' + new Date().toISOString() + ']');
+
+  try {
+    const res = await fetch('https://formspree.io/f/mbdzoaav', {
+      method: 'POST',
+      body: formData,
+      headers: { 'Accept': 'application/json' }
+    });
+    if (res.ok) {
+      goToStep(4);
+    } else {
+      alert('Fehler beim Absenden. Bitte versuchen Sie es erneut oder kontaktieren Sie uns direkt.');
+      btn.disabled   = false;
+      btn.textContent = '✅ Jetzt verbindlich beauftragen';
+    }
+  } catch {
+    alert('Netzwerkfehler. Bitte prüfen Sie Ihre Verbindung.');
+    btn.disabled   = false;
+    btn.textContent = '✅ Jetzt verbindlich beauftragen';
+  }
+});
+</script>
+</body>
+</html>
