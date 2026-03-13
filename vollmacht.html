@@ -453,28 +453,50 @@ body {
 .btn-note { font-size: 11px; color: var(--gray-400); text-align: center; margin-top: 8px; }
 
 /* ── SUCCESS SCREEN ── */
-.success-wrap { text-align: center; padding: 40px 24px; }
-.success-icon {
-  width: 72px; height: 72px;
-  background: var(--green-light);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 36px;
-  margin: 0 auto 20px;
+.success-header { background: var(--green); color: white; padding: 20px 24px; display: flex; align-items: center; gap: 14px; }
+.success-header .icon { font-size: 32px; }
+.success-header-text h2 { font-size: 18px; font-weight: 800; }
+.success-header-text p { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+
+.confirm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+@media (max-width: 480px) { .confirm-grid { grid-template-columns: 1fr; } }
+.confirm-field { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px; padding: 10px 14px; }
+.confirm-field label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--gray-400); display: block; margin-bottom: 3px; }
+.confirm-field span { font-size: 14px; color: var(--gray-800); font-weight: 600; }
+
+.sig-preview { border: 1.5px solid var(--gray-200); border-radius: 8px; background: white; padding: 8px; text-align: center; margin-bottom: 16px; }
+.sig-preview img { max-width: 100%; height: auto; max-height: 100px; }
+.sig-preview label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--gray-400); display: block; margin-bottom: 6px; }
+
+.btn-print {
+  background: white;
+  color: var(--navy);
+  border: 2px solid var(--navy);
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  transition: background 0.2s;
 }
-.success-title { font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 10px; }
-.success-sub { font-size: 14px; color: var(--gray-600); max-width: 400px; margin: 0 auto 24px; line-height: 1.7; }
-.success-box {
-  background: var(--gray-50);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius);
-  padding: 16px 20px;
-  text-align: left;
-  max-width: 440px;
-  margin: 0 auto;
+.btn-print:hover { background: var(--gray-50); }
+
+/* ── PRINT STYLES ── */
+@media print {
+  .site-header, .steps-bar, .btn-print, .btn-primary, .btn-gold,
+  #screen1, #screen2, #screen3, footer { display: none !important; }
+  #screen4 { display: block !important; }
+  body { background: white; }
+  .card { box-shadow: none; border: 1px solid #ccc; }
+  .print-only { display: block !important; }
 }
-.success-box p { font-size: 13px; color: var(--gray-600); margin-bottom: 6px; display: flex; gap: 8px; }
-.success-box p::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
 
 /* ── SCREENS ── */
 .screen { display: none; animation: fadeIn 0.35s ease; }
@@ -835,18 +857,40 @@ body {
 
   <!-- ===== SCREEN 4: SUCCESS ===== -->
   <div class="screen" id="screen4">
-    <div class="card">
-      <div class="success-wrap">
-        <div class="success-icon">✅</div>
-        <div class="success-title">Auftrag erfolgreich erteilt!</div>
-        <div class="success-sub">Vielen Dank. Wir haben Ihren Auftrag und die Vollmacht erhalten und beginnen umgehend mit der Bearbeitung.</div>
-        <div class="success-box">
-          <p>Ihre Daten wurden sicher übertragen</p>
-          <p>Wir melden uns innerhalb von 24 Stunden per E-Mail</p>
-          <p>Sie erhalten eine Bestätigung an Ihre angegebene E-Mail</p>
-          <p>Zahlung erst nach nachgewiesener Löschung</p>
+    <div class="card" style="overflow:hidden;">
+      <div class="success-header">
+        <div class="icon">✅</div>
+        <div class="success-header-text">
+          <h2>Auftrag erfolgreich erteilt!</h2>
+          <p>Ihre Vollmacht und Auftragserteilung wurde digital unterzeichnet und übermittelt.</p>
         </div>
-        <div style="margin-top:20px;font-size:12px;color:var(--gray-400);">
+      </div>
+      <div class="card-body">
+
+        <div class="section-title" style="margin-bottom:10px;">Ihre Auftragsbestätigung</div>
+
+        <!-- Dynamisch gefüllt per JS -->
+        <div class="confirm-grid" id="confirmGrid"></div>
+
+        <div class="section-title" style="margin-bottom:8px;">Digitale Unterschrift</div>
+        <div class="sig-preview">
+          <label>Geleistete Unterschrift</label>
+          <img id="sigPreviewImg" src="" alt="Unterschrift">
+        </div>
+
+        <div class="section-title" style="margin-bottom:8px;">Erteilter Auftrag</div>
+        <div id="confirmReviews" style="margin-bottom:16px;"></div>
+
+        <div style="background:var(--green-light);border:1px solid #a9dfc2;border-radius:8px;padding:14px 16px;font-size:13px;color:#1e7e45;margin-bottom:16px;">
+          <strong>Nächste Schritte:</strong> Wir beginnen innerhalb von 24 Stunden mit der Meldung. Sie zahlen <strong>ausschließlich nach erfolgreicher Löschung</strong> (50 € / Bewertung). Sie erhalten eine Bestätigung per E-Mail.
+        </div>
+
+        <button class="btn-gold" onclick="window.print()" style="margin-bottom:8px;">
+          🖨️ Bestätigung drucken / als PDF speichern
+        </button>
+        <div class="btn-note">Über den Browser-Dialog „Als PDF speichern" als Dokument sichern</div>
+
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100);font-size:12px;color:var(--gray-400);text-align:center;">
           Bei Rückfragen: <a href="mailto:kontakt.callidus@gmail.com" style="color:var(--navy);">kontakt.callidus@gmail.com</a> · +49 179 700 7772
         </div>
       </div>
@@ -939,6 +983,10 @@ function goToStep(n) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ── Global: gespeicherte Auftragsdaten für Bestätigungsseite ──────
+let savedSigDataUrl  = '';
+let savedFormData    = {};
+
 // ── Signature Canvas ──────────────────────────────────────────────
 const canvas  = document.getElementById('sigCanvas');
 const ctx     = canvas.getContext('2d');
@@ -1002,9 +1050,35 @@ document.getElementById('signForm').addEventListener('submit', async function(e)
   btn.disabled    = true;
   btn.innerHTML   = '⏳ Wird übermittelt…';
 
+  // Unterschrift als komprimiertes JPEG (klein genug für Formspree)
+  const tmpC = document.createElement('canvas');
+  tmpC.width = 360; tmpC.height = 90;
+  const tmpCtx = tmpC.getContext('2d');
+  tmpCtx.fillStyle = '#ffffff';
+  tmpCtx.fillRect(0, 0, 360, 90);
+  tmpCtx.drawImage(canvas, 0, 0, 360, 90);
+  savedSigDataUrl = tmpC.toDataURL('image/jpeg', 0.55);
+
+  // Formulardaten für Bestätigungsseite sichern
+  const fd = new FormData(this);
+  savedFormData = {
+    firma:         fd.get('firma') || firma,
+    rechtsform:    fd.get('rechtsform') || '',
+    strasse:       fd.get('strasse') || '',
+    ort:           fd.get('ort') || '',
+    unterzeichner: fd.get('unterzeichner') || '',
+    funktion:      fd.get('funktion') || '',
+    email:         fd.get('email') || '',
+    telefon:       fd.get('telefon') || '',
+    datum:         fd.get('datum') || new Date().toLocaleDateString('de-DE'),
+  };
+
   const formData = new FormData(this);
-  formData.set('signatur_data', '[Unterschrift digital erbracht – ' + new Date().toISOString() + ']');
-  formData.set('_subject', 'Neuer Auftrag: ' + firma);
+  const ts = new Date().toISOString();
+  formData.set('signatur_data', '[Unterschrift digital erbracht – ' + ts + ']');
+  formData.set('_subject', '✅ Neuer Auftrag: ' + savedFormData.firma);
+  formData.set('_replyto', savedFormData.email);
+  formData.set('bewertungen_zu_loeschen', reviews.map(r => r.name + ': ' + r.grund).join(' | ') || 'Gem. Analyse');
 
   try {
     const res = await fetch('https://formspree.io/f/mbdzoaav', {
@@ -1013,6 +1087,7 @@ document.getElementById('signForm').addEventListener('submit', async function(e)
       headers: { 'Accept': 'application/json' }
     });
     if (res.ok) {
+      buildConfirmPage();
       goToStep(4);
     } else {
       alert('Fehler beim Absenden. Bitte versuchen Sie es erneut oder kontaktieren Sie uns direkt unter kontakt.callidus@gmail.com');
@@ -1025,6 +1100,41 @@ document.getElementById('signForm').addEventListener('submit', async function(e)
     btn.innerHTML = '✅ Jetzt verbindlich beauftragen &amp; unterzeichnen';
   }
 });
+
+// ── Bestätigungsseite befüllen ────────────────────────────────────
+function buildConfirmPage() {
+  // Unterschrift-Bild anzeigen
+  const img = document.getElementById('sigPreviewImg');
+  if (img && savedSigDataUrl) img.src = savedSigDataUrl;
+
+  // Felder
+  const grid = document.getElementById('confirmGrid');
+  const firmaFull = savedFormData.firma + (savedFormData.rechtsform ? ' (' + savedFormData.rechtsform + ')' : '');
+  const adresse   = [savedFormData.strasse, savedFormData.ort].filter(Boolean).join(', ') || '–';
+  const fields = [
+    ['Unternehmen',   firmaFull],
+    ['Adresse',       adresse],
+    ['Unterzeichner', savedFormData.unterzeichner || '–'],
+    ['Funktion',      savedFormData.funktion || '–'],
+    ['E-Mail',        savedFormData.email || '–'],
+    ['Telefon',       savedFormData.telefon || '–'],
+    ['Datum',         savedFormData.datum],
+    ['Honorar',       b + ' × 50 € = ' + (b * 50) + ' € (nur bei Erfolg, zzgl. MwSt.)'],
+  ];
+  grid.innerHTML = fields.map(([label, val]) =>
+    `<div class="confirm-field"><label>${label}</label><span>${esc(val)}</span></div>`
+  ).join('');
+
+  // Bewertungen
+  const cr = document.getElementById('confirmReviews');
+  if (reviews.length > 0) {
+    cr.innerHTML = reviews.map((r, i) =>
+      `<div class="anlage-item"><strong>Bewertung ${i+1}: ${esc(r.name)}</strong><span>${r.grund ? 'Löschgrund: ' + esc(r.grund) : ''}</span></div>`
+    ).join('');
+  } else {
+    cr.innerHTML = '<div class="anlage-item"><strong>Gem. vorheriger Analyse</strong></div>';
+  }
+}
 
 // ── Helper ────────────────────────────────────────────────────────
 function esc(s) {
