@@ -595,7 +595,7 @@ body {
         <div class="score-meta" id="scoreMeta">
           <div class="score-meta-item"><strong id="metaBew">–</strong>löschbare Bewertungen</div>
           <div class="score-meta-item"><strong id="metaDelta">–</strong>Punkte Verbesserung</div>
-          <div class="score-meta-item"><strong>50 € / Bewertung</strong>Erfolgshonorar</div>
+          <div class="score-meta-item" id="metaPreis"><strong>–</strong>Erfolgshonorar gesamt</div>
         </div>
       </div>
     </div>
@@ -615,15 +615,8 @@ body {
     <div class="card">
       <div class="card-head"><span class="icon">💼</span> Unser Angebot für Sie</div>
       <div class="card-body">
-        <div class="pricing-box">
-          <div class="pricing-left">
-            <div class="pricing-title">Erfolgsbasiertes Honorar</div>
-            <div class="pricing-sub">Keine Vorauszahlung · Keine versteckten Kosten<br>Zahlung nur bei nachgewiesener Löschung</div>
-          </div>
-          <div class="pricing-right">
-            <div class="pricing-amount">50 €</div>
-            <div class="pricing-note">pro gelöschter Bewertung (zzgl. MwSt.)</div>
-          </div>
+        <div class="pricing-box" id="pricingBox">
+          <!-- Wird per JS befüllt -->
         </div>
         <div class="warning-box" style="margin-top:16px;">
           <strong>Hinweis:</strong> Die Löschentscheidung trifft ausschließlich Google LLC anhand ihrer eigenen Richtlinien. Wir übernehmen den vollständigen Meldeprozess – können jedoch keine Garantie für den Erfolg geben.
@@ -917,7 +910,14 @@ const firma  = params.get('firma') || 'Ihr Unternehmen';
 const si     = parseFloat(params.get('si')) || 0;
 const sn     = parseFloat(params.get('sn')) || 0;
 const b      = parseInt(params.get('b'))    || 0;
+const preis  = parseInt(params.get('p'))    || 50;   // Basispreis: 50 / 80 / 100
+const rabatt = b >= 20 ? 0.20 : 0;                   // ab 20 Bewertungen: 20% Rabatt
 const rRaw   = params.get('r') || '';
+
+function gesamtPreis() {
+  const gesamt = b * preis;
+  return rabatt > 0 ? Math.round(gesamt * (1 - rabatt)) : gesamt;
+}
 
 // Parse reviews: "Name::Text::Grund|Name2::Text2::Grund2"
 const reviews = rRaw ? rRaw.split('|').map(r => {
@@ -925,11 +925,54 @@ const reviews = rRaw ? rRaw.split('|').map(r => {
   return { name: parts[0] || '', text: parts[1] || '', grund: parts[2] || '' };
 }).filter(r => r.name) : [];
 
+// ── Pricing Box ───────────────────────────────────────────────────
+(function() {
+  const box = document.getElementById('pricingBox');
+  let html = '';
+  if (rabatt > 0) {
+    const brutto = b * preis;
+    const netto  = gesamtPreis();
+    html = `
+      <div class="pricing-left">
+        <div class="pricing-title">Erfolgsbasiertes Honorar</div>
+        <div class="pricing-sub">Keine Vorauszahlung · ${preis} € pro Bewertung<br>
+          <span style="background:rgba(201,168,76,0.25);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">🎉 20% Rabatt ab 20 Bewertungen</span>
+        </div>
+      </div>
+      <div class="pricing-right">
+        <div class="pricing-amount">${netto} €</div>
+        <div class="pricing-note" style="text-decoration:line-through;opacity:0.5;">${brutto} € (Normalpreis)</div>
+        <div class="pricing-note">Gesamthonorar (zzgl. MwSt.)</div>
+      </div>`;
+  } else {
+    html = `
+      <div class="pricing-left">
+        <div class="pricing-title">Erfolgsbasiertes Honorar</div>
+        <div class="pricing-sub">Keine Vorauszahlung · Keine versteckten Kosten<br>Zahlung nur bei nachgewiesener Löschung</div>
+      </div>
+      <div class="pricing-right">
+        <div class="pricing-amount">${preis} €</div>
+        <div class="pricing-note">pro gelöschter Bewertung (zzgl. MwSt.)</div>
+        ${b >= 15 ? '<div class="pricing-note" style="color:#C9A84C;font-weight:600;">Ab 20 Bew.: 20% Rabatt</div>' : ''}
+      </div>`;
+  }
+  box.innerHTML = html;
+})();
+
 // ── Populate Screen 1 ────────────────────────────────────────────
 document.getElementById('scoreIst').textContent = si.toFixed(1) + ' ★';
 document.getElementById('scoreNeu').textContent = sn.toFixed(1) + ' ★';
 document.getElementById('metaBew').textContent  = b;
 document.getElementById('metaDelta').textContent = '+' + (sn - si).toFixed(2);
+
+// Preisanzeige mit Rabatt
+const preisEl = document.getElementById('metaPreis');
+if (rabatt > 0) {
+  const brutto = b * preis;
+  preisEl.innerHTML = '<strong>' + gesamtPreis() + ' € <span style="text-decoration:line-through;font-size:12px;color:#c0392b;font-weight:400;">' + brutto + ' €</span></strong>inkl. 20% Rabatt (ab 20 Bew.)';
+} else {
+  preisEl.innerHTML = '<strong>' + b + ' × ' + preis + ' € = ' + gesamtPreis() + ' €</strong>Erfolgshonorar (nur bei Erfolg)';
+}
 
 const reviewContainer = document.getElementById('reviewCards');
 if (reviews.length > 0) {
@@ -980,10 +1023,11 @@ function goToStep(n) {
     el.classList.remove('active', 'done');
     if (i + 1 < n)  el.classList.add('done');
     if (i + 1 === n) el.classList.add('active');
-    // Update done checkmark
     const numEl = el.querySelector('.step-num span');
     if (i + 1 < n && numEl) numEl.style.display = 'none';
   });
+  // Canvas erst initialisieren wenn Screen 3 sichtbar ist
+  if (n === 3) setTimeout(resizeCanvas, 80);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1009,8 +1053,7 @@ function resizeCanvas() {
   ctx.lineCap     = 'round';
   ctx.lineJoin    = 'round';
 }
-window.addEventListener('resize', resizeCanvas);
-setTimeout(resizeCanvas, 100);
+window.addEventListener('resize', () => { if (document.getElementById('screen3').classList.contains('active')) resizeCanvas(); });
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
@@ -1054,7 +1097,7 @@ document.getElementById('signForm').addEventListener('submit', async function(e)
   btn.disabled    = true;
   btn.innerHTML   = '⏳ Wird übermittelt…';
 
-  // Unterschrift als komprimiertes JPEG (klein genug für Formspree)
+  // Unterschrift als komprimiertes JPEG
   const tmpC = document.createElement('canvas');
   tmpC.width = 360; tmpC.height = 90;
   const tmpCtx = tmpC.getContext('2d');
@@ -1063,44 +1106,58 @@ document.getElementById('signForm').addEventListener('submit', async function(e)
   tmpCtx.drawImage(canvas, 0, 0, 360, 90);
   savedSigDataUrl = tmpC.toDataURL('image/jpeg', 0.55);
 
-  // Formulardaten für Bestätigungsseite sichern
-  const fd = new FormData(this);
+  // Formulardaten einmalig auslesen (eine FormData für alles)
+  const formData = new FormData(this);
   savedFormData = {
-    firma:         fd.get('firma') || firma,
-    rechtsform:    fd.get('rechtsform') || '',
-    strasse:       fd.get('strasse') || '',
-    ort:           fd.get('ort') || '',
-    unterzeichner: fd.get('unterzeichner') || '',
-    funktion:      fd.get('funktion') || '',
-    email:         fd.get('email') || '',
-    telefon:       fd.get('telefon') || '',
-    datum:         fd.get('datum') || new Date().toLocaleDateString('de-DE'),
+    firma:         formData.get('firma') || firma,
+    rechtsform:    formData.get('rechtsform') || '',
+    strasse:       formData.get('strasse') || '',
+    ort:           formData.get('ort') || '',
+    unterzeichner: formData.get('unterzeichner') || '',
+    funktion:      formData.get('funktion') || '',
+    email:         formData.get('email') || '',
+    telefon:       formData.get('telefon') || '',
+    datum:         formData.get('datum') || new Date().toLocaleDateString('de-DE'),
   };
 
-  const formData = new FormData(this);
+  // Zusatzfelder setzen
   const ts = new Date().toISOString();
   formData.set('signatur_data', '[Unterschrift digital erbracht – ' + ts + ']');
-  formData.set('_subject', '✅ Neuer Auftrag: ' + savedFormData.firma);
-  formData.set('_replyto', savedFormData.email);
-  formData.set('bewertungen_zu_loeschen', reviews.map(r => r.name + ': ' + r.grund).join(' | ') || 'Gem. Analyse');
+  formData.set('_subject', 'Neuer Auftrag: ' + savedFormData.firma);
+  formData.set('bewertungen', reviews.map((r,i) => (i+1)+'. '+r.name+(r.grund?' – '+r.grund:'')).join(' | ') || 'Gem. Analyse');
+  formData.set('honorar', b + ' x ' + preis + ' EUR = ' + gesamtPreis() + ' EUR (nur bei Erfolg)');
+  if (savedFormData.email) formData.set('_replyto', savedFormData.email);
+  // Signatur-Feld leeren (zu groß)
+  formData.delete('signatur_data');
+  formData.append('signatur_data', '[Unterschrift digital erbracht – ' + ts + ']');
 
   try {
+    // Timeout nach 15 Sekunden
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 15000);
+
     const res = await fetch('https://formspree.io/f/mbdzoaav', {
-      method: 'POST',
-      body: formData,
-      headers: { 'Accept': 'application/json' }
+      method:  'POST',
+      body:    formData,
+      headers: { 'Accept': 'application/json' },
+      signal:  controller.signal,
     });
+    clearTimeout(timeoutId);
+
     if (res.ok) {
       buildConfirmPage();
       goToStep(4);
-      setTimeout(() => generatePDFs(), 600);
+      setTimeout(() => generatePDFs(), 700);
     } else {
-      alert('Fehler beim Absenden. Bitte versuchen Sie es erneut oder kontaktieren Sie uns direkt unter kontakt.callidus@gmail.com');
+      const errBody = await res.json().catch(() => ({}));
+      const errMsg  = errBody.error || ('HTTP ' + res.status);
+      alert('Übermittlung fehlgeschlagen (' + errMsg + '). Bitte erneut versuchen oder direkt mailen: kontakt.callidus@gmail.com');
       btn.disabled  = false;
       btn.innerHTML = '✅ Jetzt verbindlich beauftragen &amp; unterzeichnen';
     }
-  } catch {
-    alert('Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung.');
+  } catch(err) {
+    const msg = err.name === 'AbortError' ? 'Zeitüberschreitung (15 s). Bitte Verbindung prüfen.' : 'Netzwerkfehler: ' + err.message;
+    alert(msg + '\n\nAlternativ: kontakt.callidus@gmail.com · +49 179 700 7772');
     btn.disabled  = false;
     btn.innerHTML = '✅ Jetzt verbindlich beauftragen &amp; unterzeichnen';
   }
@@ -1124,7 +1181,7 @@ function buildConfirmPage() {
     ['E-Mail',        savedFormData.email || '–'],
     ['Telefon',       savedFormData.telefon || '–'],
     ['Datum',         savedFormData.datum],
-    ['Honorar',       b + ' × 50 € = ' + (b * 50) + ' € (nur bei Erfolg, zzgl. MwSt.)'],
+    ['Honorar', rabatt > 0 ? b+' × '+preis+' € (−20% Rabatt) = '+gesamtPreis()+' € netto (nur bei Erfolg)' : b+' × '+preis+' € = '+gesamtPreis()+' € netto (nur bei Erfolg)'],
   ];
   grid.innerHTML = fields.map(([label, val]) =>
     `<div class="confirm-field"><label>${label}</label><span>${esc(val)}</span></div>`
@@ -1254,7 +1311,10 @@ function pdfAuftragsbestaetigung() {
   doc.setFillColor(240,230,200);
   doc.rect(20, y-3, 170, 14, 'F');
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(26,51,89);
-  doc.text(b + ' × 50,00 € = ' + (b*50) + ',00 € netto (zzgl. MwSt.) – nur bei Erfolg', 24, y + 3);
+  const preisText = rabatt > 0
+    ? b + ' × ' + preis + ' € abzgl. 20% Rabatt = ' + gesamtPreis() + ' € netto (zzgl. MwSt.) – nur bei Erfolg'
+    : b + ' × ' + preis + ',00 € = ' + gesamtPreis() + ',00 € netto (zzgl. MwSt.) – nur bei Erfolg';
+  doc.text(preisText, 24, y + 3);
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,80,40);
   doc.text('Keine Vorauszahlung. Zahlung nur nach nachgewiesener Löschung durch Google LLC.', 24, y + 9);
   y += 18;
