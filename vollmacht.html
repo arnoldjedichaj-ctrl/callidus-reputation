@@ -679,7 +679,7 @@ body {
             <div class="para-title"><span class="para-num">4</span> Vergütung (Erfolgshonorar)</div>
             <p>Die Vergütung erfolgt ausschließlich als <strong>Erfolgshonorar</strong>. Es wird keine Vorauszahlung erhoben.</p>
             <div class="highlight-box">
-              <strong>Honorar:</strong> 50,00 € netto (zzgl. gesetzlicher MwSt.) pro Bewertung, die durch Google LLC nachweislich gelöscht oder entfernt wird.<br><br>
+              <strong>Honorar:</strong> <span id="contractPreis">50,00</span> € netto (zzgl. gesetzlicher MwSt.) pro Bewertung, die durch Google LLC nachweislich gelöscht oder entfernt wird.<br><br>
               <strong>Erfolg</strong> im Sinne dieses Vertrages ist die bestätigte Löschung / Nicht-Anzeige der gemeldeten Bewertung im Google Business Profil des Auftraggebers. Bei Nicht-Erfolg entsteht <em>keinerlei</em> Zahlungspflicht.
             </div>
             <p style="margin-top:10px;">Die Rechnungsstellung erfolgt nach Eintreten des Erfolges. Zahlungsziel: 14 Tage nach Rechnungseingang.</p>
@@ -876,7 +876,7 @@ body {
         <div id="confirmReviews" style="margin-bottom:16px;"></div>
 
         <div style="background:var(--green-light);border:1px solid #a9dfc2;border-radius:8px;padding:14px 16px;font-size:13px;color:#1e7e45;margin-bottom:16px;">
-          <strong>Nächste Schritte:</strong> Wir beginnen innerhalb von 24 Stunden mit der Meldung. Sie zahlen <strong>ausschließlich nach erfolgreicher Löschung</strong> (50 € / Bewertung). Sie erhalten eine Bestätigung per E-Mail.
+          <strong>Nächste Schritte:</strong> Wir beginnen innerhalb von 24 Stunden mit der Meldung. Sie zahlen <strong>ausschließlich nach erfolgreicher Löschung</strong> (<span id="confirmPreisHint">50</span> € / Bewertung). Sie erhalten eine Bestätigung per E-Mail.
         </div>
 
         <button class="btn-gold" onclick="generatePDFs()" style="margin-bottom:8px;" id="dlBtn">
@@ -964,6 +964,11 @@ document.getElementById('scoreIst').textContent = si.toFixed(1) + ' ★';
 document.getElementById('scoreNeu').textContent = sn.toFixed(1) + ' ★';
 document.getElementById('metaBew').textContent  = b;
 document.getElementById('metaDelta').textContent = '+' + (sn - si).toFixed(2);
+
+// Vertragstext: Preis dynamisch setzen
+const preisFormatted = preis.toFixed(2).replace('.', ',');
+document.getElementById('contractPreis').textContent    = preisFormatted;
+document.getElementById('confirmPreisHint').textContent = preis;
 
 // Preisanzeige mit Rabatt
 const preisEl = document.getElementById('metaPreis');
