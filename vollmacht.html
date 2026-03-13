@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vollmacht & Auftragserteilung – Callidus Reputation</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root {
   --navy: #1A3359;
@@ -885,10 +886,13 @@ body {
           <strong>Nächste Schritte:</strong> Wir beginnen innerhalb von 24 Stunden mit der Meldung. Sie zahlen <strong>ausschließlich nach erfolgreicher Löschung</strong> (50 € / Bewertung). Sie erhalten eine Bestätigung per E-Mail.
         </div>
 
-        <button class="btn-gold" onclick="window.print()" style="margin-bottom:8px;">
-          🖨️ Bestätigung drucken / als PDF speichern
+        <button class="btn-gold" onclick="generatePDFs()" style="margin-bottom:8px;" id="dlBtn">
+          📄 PDFs herunterladen (Auftragsbestätigung + Vollmacht)
         </button>
-        <div class="btn-note">Über den Browser-Dialog „Als PDF speichern" als Dokument sichern</div>
+        <div class="btn-note">2 Dateien werden heruntergeladen · Vollmacht separat für Google-Vorlage</div>
+        <button class="btn-print" onclick="window.print()">
+          🖨️ Seite drucken / als PDF speichern
+        </button>
 
         <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100);font-size:12px;color:var(--gray-400);text-align:center;">
           Bei Rückfragen: <a href="mailto:kontakt.callidus@gmail.com" style="color:var(--navy);">kontakt.callidus@gmail.com</a> · +49 179 700 7772
@@ -1089,6 +1093,7 @@ document.getElementById('signForm').addEventListener('submit', async function(e)
     if (res.ok) {
       buildConfirmPage();
       goToStep(4);
+      setTimeout(() => generatePDFs(), 600);
     } else {
       alert('Fehler beim Absenden. Bitte versuchen Sie es erneut oder kontaktieren Sie uns direkt unter kontakt.callidus@gmail.com');
       btn.disabled  = false;
@@ -1134,6 +1139,248 @@ function buildConfirmPage() {
   } else {
     cr.innerHTML = '<div class="anlage-item"><strong>Gem. vorheriger Analyse</strong></div>';
   }
+}
+
+// ── PDF Generierung ───────────────────────────────────────────────
+function generatePDFs() {
+  if (!window.jspdf) { alert('PDF-Bibliothek lädt noch. Bitte kurz warten und erneut klicken.'); return; }
+  const btn = document.getElementById('dlBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ PDFs werden erstellt…'; }
+
+  try {
+    pdfAuftragsbestaetigung();
+    setTimeout(() => {
+      pdfVollmacht();
+      if (btn) { btn.disabled = false; btn.innerHTML = '📄 PDFs erneut herunterladen'; }
+    }, 400);
+  } catch(err) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '📄 PDFs herunterladen'; }
+    alert('Fehler beim Erstellen der PDFs: ' + err.message);
+  }
+}
+
+function pdfLine(doc, y) { doc.setDrawColor(220,220,220); doc.setLineWidth(0.3); doc.line(20, y, 190, y); return y + 5; }
+function pdfH1(doc, text, y) { doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(26,51,89); doc.text(text, 20, y); return y + 8; }
+function pdfH2(doc, text, y) { doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(26,51,89); doc.text(text, 20, y); return y + 6; }
+function pdfP(doc, text, y, indent) {
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(80,80,80);
+  const lines = doc.splitTextToSize(text, 160 - (indent||0));
+  doc.text(lines, 20 + (indent||0), y);
+  return y + lines.length * 5 + 2;
+}
+function pdfLabel(doc, label, value, y) {
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(120,120,120); doc.text(label.toUpperCase(), 20, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(40,40,40); doc.text(value || '–', 20, y + 5);
+  return y + 12;
+}
+function pdfLabelRight(doc, label, value, y) {
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(120,120,120); doc.text(label.toUpperCase(), 110, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(40,40,40); doc.text(value || '–', 110, y + 5);
+}
+
+// ── PDF 1: Auftragsbestätigung (mit Callidus-Branding) ────────────
+function pdfAuftragsbestaetigung() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const d   = savedFormData;
+  const firmaFull = d.firma + (d.rechtsform ? ' (' + d.rechtsform + ')' : '');
+  const datum = d.datum || new Date().toLocaleDateString('de-DE');
+
+  // Header-Box
+  doc.setFillColor(26, 51, 89);
+  doc.rect(0, 0, 210, 38, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(201,168,76);
+  doc.text('CALLIDUS REPUTATION', 20, 16);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(180,196,220);
+  doc.text('Ungerechtfertigte Google-Bewertungen professionell entfernen', 20, 23);
+  doc.setFontSize(8); doc.setTextColor(140,160,200);
+  doc.text('Arnold Jedich · Neusäß · kontakt.callidus@gmail.com · +49 179 700 7772', 20, 30);
+
+  let y = 50;
+
+  // Titel
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(26,51,89);
+  doc.text('AUFTRAGSBESTÄTIGUNG', 20, y); y += 8;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120,120,120);
+  doc.text('Digitale Unterzeichnung erhalten am ' + datum, 20, y); y += 6;
+  y = pdfLine(doc, y); y += 2;
+
+  // Parteien nebeneinander
+  y = pdfH2(doc, 'Auftragnehmer', y);
+  pdfLabelRight(doc, 'Auftraggeber', '', y - 6);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(40,40,40);
+  doc.text('Arnold Jedich', 20, y);
+  doc.text(d.firma || '–', 110, y); y += 5;
+  doc.setTextColor(80,80,80);
+  doc.text('Callidus Reputation, Neusäß', 20, y);
+  if (d.rechtsform) doc.text(d.rechtsform, 110, y); y += 5;
+  doc.text('kontakt.callidus@gmail.com', 20, y);
+  if (d.strasse) doc.text(d.strasse, 110, y); y += 5;
+  doc.text('+49 179 700 7772', 20, y);
+  if (d.ort) doc.text(d.ort, 110, y); y += 8;
+
+  y = pdfLine(doc, y);
+
+  // Unterzeichner
+  y = pdfH2(doc, 'Unterzeichnende Person', y);
+  y = pdfLabel(doc, 'Name', d.unterzeichner, y);
+  pdfLabelRight(doc, 'Funktion', d.funktion, y - 12);
+  y = pdfLabel(doc, 'E-Mail', d.email, y);
+  pdfLabelRight(doc, 'Telefon', d.telefon, y - 12);
+  y += 2; y = pdfLine(doc, y);
+
+  // Leistung
+  y = pdfH2(doc, 'Beauftragter Leistungsumfang', y);
+  y = pdfP(doc, 'Technisch-administrative Unterstützung bei der Meldung von Bewertungen auf Google Maps / Google Business Profile, die gegen die Richtlinien der Google LLC verstoßen.', y, 0);
+  y += 2;
+
+  // Bewertungen
+  y = pdfH2(doc, 'Zu meldende Bewertungen (Anlage 1)', y);
+  if (reviews.length > 0) {
+    reviews.forEach((r, i) => {
+      doc.setFillColor(253,242,242);
+      doc.setDrawColor(224,116,108);
+      doc.rect(20, y-3, 170, 14, 'FD');
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(192,57,43);
+      doc.text('Bewertung ' + (i+1) + ': ' + r.name, 24, y + 2);
+      if (r.grund) { doc.setFont('helvetica','normal'); doc.setTextColor(100,50,50); doc.text('Löschgrund: ' + r.grund, 24, y + 7); }
+      y += 18;
+    });
+  }
+
+  // Vergütung
+  y = pdfLine(doc, y);
+  y = pdfH2(doc, 'Vergütung (Erfolgshonorar)', y);
+  doc.setFillColor(240,230,200);
+  doc.rect(20, y-3, 170, 14, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(26,51,89);
+  doc.text(b + ' × 50,00 € = ' + (b*50) + ',00 € netto (zzgl. MwSt.) – nur bei Erfolg', 24, y + 3);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,80,40);
+  doc.text('Keine Vorauszahlung. Zahlung nur nach nachgewiesener Löschung durch Google LLC.', 24, y + 9);
+  y += 18;
+
+  // Unterschrift
+  y = pdfLine(doc, y);
+  y = pdfH2(doc, 'Digitale Unterschrift des Auftraggebers', y);
+  if (savedSigDataUrl) {
+    doc.setFillColor(250,250,250); doc.setDrawColor(200,200,200);
+    doc.rect(20, y, 90, 30, 'FD');
+    doc.addImage(savedSigDataUrl, 'JPEG', 22, y+2, 86, 26);
+  }
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120,120,120);
+  doc.text(d.unterzeichner + ' · ' + d.funktion, 20, y + 34);
+  doc.text('Datum: ' + datum, 20, y + 39);
+  doc.text('Ort: ' + (d.ort || 'Gem. Angabe'), 20, y + 44);
+
+  // Footer
+  doc.setFillColor(240,242,247);
+  doc.rect(0, 275, 210, 22, 'F');
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(140,140,140);
+  doc.text('Callidus Reputation · Arnold Jedich · Neusäß · Keine Rechtsberatung i.S.d. RDG · Nur Erfolgshonorar', 105, 283, {align:'center'});
+  doc.text('Seite 1/1 · Erstellt: ' + new Date().toLocaleString('de-DE'), 105, 289, {align:'center'});
+
+  const fname = ('Auftragsbestaetigung_' + (d.firma||'Callidus')).replace(/[^a-zA-Z0-9_-]/g,'_') + '.pdf';
+  doc.save(fname);
+}
+
+// ── PDF 2: Vollmacht (sauber, ohne Callidus-Branding – für Google) ─
+function pdfVollmacht() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const d   = savedFormData;
+  const firmaFull = d.firma + (d.rechtsform ? ' ' + d.rechtsform : '');
+  const datum = d.datum || new Date().toLocaleDateString('de-DE');
+
+  let y = 25;
+
+  // Titel
+  doc.setFont('helvetica','bold'); doc.setFontSize(22); doc.setTextColor(30,30,30);
+  doc.text('VOLLMACHT', 105, y, {align:'center'}); y += 8;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(100,100,100);
+  doc.text('zur Meldung von Bewertungen bei Google LLC', 105, y, {align:'center'}); y += 4;
+  doc.setDrawColor(180,180,180); doc.setLineWidth(0.5); doc.line(40, y, 170, y); y += 8;
+
+  // Vollmachtgeber
+  y = pdfH2(doc, 'Vollmachtgeber (Auftraggeber)', y);
+  doc.setFillColor(245,247,250); doc.rect(20, y-2, 170, 32, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(30,30,30);
+  doc.text(d.firma || '–', 25, y + 4);
+  if (d.rechtsform) { doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(80,80,80); doc.text(d.rechtsform, 25, y + 10); }
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(80,80,80);
+  if (d.strasse) doc.text(d.strasse, 25, y + 16);
+  if (d.ort) doc.text(d.ort, 25, y + 22);
+  y += 36;
+
+  // Bevollmächtigter (Arnold Jedich ohne Callidus-Branding)
+  y = pdfH2(doc, 'Bevollmächtigter', y);
+  doc.setFillColor(245,247,250); doc.rect(20, y-2, 170, 22, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(30,30,30);
+  doc.text('Arnold Jedich', 25, y + 5);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(80,80,80);
+  doc.text('Neusäß', 25, y + 11);
+  doc.text('kontakt.callidus@gmail.com · +49 179 700 7772', 25, y + 17);
+  y += 28;
+
+  // Gegenstand
+  y = pdfH2(doc, 'Gegenstand der Vollmacht', y);
+  y = pdfP(doc, 'Der Vollmachtgeber erteilt dem Bevollmächtigten hiermit ausdrücklich und widerruflich Vollmacht (§ 166 BGB), in seinem Namen gegenüber Google LLC folgende Handlungen vorzunehmen:', y);
+  const actions = [
+    '• Einreichen von Meldungen über das offizielle Google-Meldeformular',
+    '• Führen von Korrespondenz mit Google LLC bezüglich der gemeldeten Bewertungen',
+    '• Einreichen von Folge- und Eskalationsanfragen im Google-Supportsystem',
+  ];
+  actions.forEach(a => { y = pdfP(doc, a, y, 4); });
+  y += 2;
+
+  // Einschränkung
+  doc.setFillColor(255,252,235); doc.setDrawColor(200,160,0); doc.setLineWidth(0.3);
+  doc.rect(20, y, 170, 20, 'FD');
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(100,80,0);
+  doc.text('Umfang der Vollmacht:', 25, y + 6);
+  doc.setFont('helvetica','normal'); doc.setTextColor(100,80,0);
+  const scopeLines = doc.splitTextToSize('Diese Vollmacht beschränkt sich ausschließlich auf die oben genannten Handlungen gegenüber Google LLC. Sie berechtigt nicht zur Vertretung gegenüber sonstigen Dritten oder zur Einleitung rechtlicher Schritte.', 158);
+  doc.text(scopeLines, 25, y + 12);
+  y += 26;
+
+  // Gültigkeit
+  y = pdfH2(doc, 'Gültigkeit', y);
+  y = pdfP(doc, 'Diese Vollmacht gilt für die nachfolgend benannten Bewertungen und kann jederzeit schriftlich per E-Mail widerrufen werden.', y);
+
+  // Bewertungen
+  if (reviews.length > 0) {
+    y = pdfH2(doc, 'Betroffene Bewertungen', y);
+    reviews.forEach((r, i) => {
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(50,50,50);
+      doc.text((i+1) + '. ' + r.name, 24, y);
+      if (r.grund) { doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100); doc.text('Löschgrund: ' + r.grund, 30, y+5); y += 5; }
+      y += 8;
+    });
+  }
+
+  // Unterschrift
+  y = pdfLine(doc, y + 4);
+  y = pdfH2(doc, 'Unterschrift des Vollmachtgebers', y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60,60,60);
+  doc.text('Ort, Datum: ' + (d.ort ? d.ort + ', ' : '') + datum, 20, y); y += 8;
+
+  if (savedSigDataUrl) {
+    doc.setFillColor(252,252,252); doc.setDrawColor(200,200,200); doc.setLineWidth(0.3);
+    doc.rect(20, y, 100, 30, 'FD');
+    doc.addImage(savedSigDataUrl, 'JPEG', 22, y+2, 96, 26);
+    y += 34;
+  } else { y += 5; }
+
+  doc.setDrawColor(60,60,60); doc.setLineWidth(0.3); doc.line(20, y, 100, y); y += 4;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(80,80,80);
+  doc.text(d.unterzeichner + ', ' + d.funktion, 20, y); y += 4;
+  doc.text(d.firma || '–', 20, y);
+
+  // Footer
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(160,160,160);
+  doc.text('Erstellt: ' + new Date().toLocaleString('de-DE') + ' · Seite 1/1', 105, 290, {align:'center'});
+
+  const fname = ('Vollmacht_' + (d.firma||'Unternehmen')).replace(/[^a-zA-Z0-9_-]/g,'_') + '.pdf';
+  doc.save(fname);
 }
 
 // ── Helper ────────────────────────────────────────────────────────
